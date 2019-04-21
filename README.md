@@ -108,12 +108,20 @@ You can build and link this example program with the MonetDBLite shared library 
 ````
 gcc tests/readme/readme.c -o readme -Isrc/embedded -Lbuild -lmonetdb5
 ````
+(Alex) I used the following command to compile it.
+```
+gcc tests/readme/readme.c -o readme -I src/embedded -L build -lmonetdb5 -lm -lpthread -ldl
+``` 
 This should produce a binary named `readme`. Running this binary should produce the following output:
 ````
 Query result with 2 cols and 2 rows
 42, Hello
 NULL, World
 ````
+(Alex) Before I ran the above program, I had to run the following command in the project directory. So the program can pick up the shared object.
+```
+export LD_LIBRARY_PATH=$(pwd)/build
+``` 
 
 
 ## Issues
