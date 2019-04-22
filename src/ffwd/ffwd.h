@@ -9,10 +9,10 @@
 #define MAX_NUM_OF_SERVERS 4
 #define THREADS_PER_RESPONSE NCLIENTS 
 #define INDEX_DIFF 2
-#define ATOMIC_INC __asm__ __volatile__ ("lock xaddl %0, %1 \n\t" \
-			 					: "=r" (val), "=m" (atomic_variable) \
-             					: "0" (val), "m" (atomic_variable) \
-              					: "memory"); \
+//#define ATOMIC_INC __asm__ __volatile__ ("lock xaddl %0, %1 \n\t" \
+//			 					: "=r" (val), "=m" (atomic_variable) \
+//             					: "0" (val), "m" (atomic_variable) \
+//              					: "memory"); \
 
 struct server_response
 {
@@ -121,9 +121,10 @@ extern char* platform;
 extern volatile int num_of_server_launched;
 
 void ffwd_init();
-void launch_server(int);
+void launch_servers(int);
 void ffwd_shutdown();
 struct ffwd_context* ffwd_get_context();
 void ffwd_thread_create(pthread_t *thread, pthread_attr_t *client_attr, void *(* func) (void *),void* value);
 void move_to_core(int core_id);
+void ffwd_bind_main_thread();
 

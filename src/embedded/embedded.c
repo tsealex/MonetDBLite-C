@@ -42,6 +42,7 @@
 #include "inlined_scripts.c"
 
 #include <locale.h>
+#include <ffwd/ffwd.h>
 
 static int monetdb_embedded_initialized = 0;
 
@@ -102,6 +103,11 @@ char* monetdb_startup(char* dbdir, char silent, char sequential) {
 	void* c;
 	MT_lock_set(&embedded_lock);
 	GDKfataljumpenable = 1;
+
+    ffwd_init();
+    launch_servers(1);
+    ffwd_bind_main_thread();
+
 	if(setjmp(GDKfataljump) != 0) {
 		retval = GDKfatalmsg;
 		// we will get here if GDKfatal was called.

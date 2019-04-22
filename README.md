@@ -110,7 +110,7 @@ gcc tests/readme/readme.c -o readme -Isrc/embedded -Lbuild -lmonetdb5
 ````
 (Alex) I used the following command to compile it.
 ```
-gcc tests/readme/readme.c -o readme -I src/embedded -L build -lmonetdb5 -lm -lpthread -ldl
+gcc tests/readme/readme.c -o readme -I src/embedded -L build -lmonetdb5 -lnuma -lm -lpthread -ldl
 ``` 
 This should produce a binary named `readme`. Running this binary should produce the following output:
 ````

@@ -258,6 +258,7 @@ MALexitClient(Client c)
 	}
 	return NULL;
 }
+#include "ffwd/ffwd.h"
 
 str
 MALreader(Client c)
