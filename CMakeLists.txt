@@ -362,6 +362,9 @@ add_library(libmonetdb5 SHARED
         src/sql/storage/store_sequence.h
         src/monetdb_config.h
         src/monetdb_config.h.in
+        src/ffwd/macro.h
+        src/ffwd/ffwd.h
+        src/ffwd/libffwd.c
 )
 
 add_executable(test_readme 

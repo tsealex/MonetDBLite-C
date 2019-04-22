@@ -11,6 +11,10 @@ endif
 DEPSDIR=$(OBJDIR)/deps
 
 CFLAGS=-DLIBGDK -DLIBMAL -DLIBOPTIMIZER -DLIBSTREAM -DLIBSQL -std=c99
+CFLAGS += -O3 -g
+NPROC=$(shell nproc)
+MCMODEL = -mcmodel=large
+LIBS = -lnuma -lpthread -lrt
 LDFLAGS=-lm
 INCLUDE_FLAGS= -Isrc/ -Isrc/common  \
 -Isrc/embedded -Isrc/gdk \
@@ -102,6 +106,7 @@ src/mal/modules/01_calc.mal \
 src/mal/sqlbackend/40_sql.mal 
 
 COBJECTS=\
+${OBJDIR}/ffwd/libffwd.o \
 $(OBJDIR)/common/stream.o \
 $(OBJDIR)/common/mutils.o \
 $(OBJDIR)/embedded/embedded.o \
@@ -329,7 +334,7 @@ DEPS = $(shell find $(DEPSDIR) -name "*.d")
 
 
 $(OBJDIR)/%.o: src/%.c
-	$(CC) $(CFLAGS) -DMONETDBLITE_COMPILE -MMD -MF $(subst $(OBJDIR),$(DEPSDIR),$(subst .o,.d,$@)) $(INCLUDE_FLAGS) $(OPTFLAGS) -c $(subst $(OBJDIR)/,src/,$(subst .o,.c,$@)) -o $@
+	$(CC) $(CFLAGS) $(MCMODEL) -DT$(NPROC) -DMONETDBLITE_COMPILE -MMD -MF $(subst $(OBJDIR),$(DEPSDIR),$(subst .o,.d,$@)) $(INCLUDE_FLAGS) $(OPTFLAGS) -c $(subst $(OBJDIR)/,src/,$(subst .o,.c,$@)) -o $@ ${LIBS}
 
 $(LIBFILE): $(COBJECTS) 
 	$(CC) $(LDFLAGS) $(COBJECTS) $(OPTFLAGS) -o $(LIBFILE) -shared
