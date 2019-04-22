@@ -345,7 +345,7 @@ static void initialize_core_ordering(){
         }
         total_sockets++;
         all_threads += i;
-        printf("%d %d\n", total_sockets, all_threads);
+        //printf("%d %d\n", total_sockets, all_threads);
     }
 
     if(!(file = popen(FIND_PLATFORM, "r")))
@@ -353,7 +353,6 @@ static void initialize_core_ordering(){
 
      while(fgets(text, 1024, file)) {
         p = strtok_r(text, "\n", &saveptr);
-        printf("%s", p);
      	if (!strcmp(p, "Intel")){
     		platform = "Intel";
     	}
@@ -402,11 +401,14 @@ void ffwd_init() {
 	}
 
 	initialize_core_ordering();
-	pthread_key_create(&thr_context_key, NULL);
+    //printf("zzz\n");
+    pthread_key_create(&thr_context_key, NULL);
+    //printf("zzzzz\n");
 }
 
 //launches upto 4 servers on the first core of each socket
 void launch_servers(int num_of_servers){
+    //printf("yoo 00\n");
 	int i, s, server_core, server_numa_node;
 
 	for (s = 0; s < num_of_servers; s++){
@@ -419,18 +421,20 @@ void launch_servers(int num_of_servers){
 			server_core = cores_per_socket * s;
 			server_numa_node = server_core/cores_per_socket;
 		}
-
+        //printf("yoo aa\n");
 		server_response_set[s] = (struct server_set*)numa_alloc_onnode(sizeof(struct server_set), server_numa_node);
 		for (i = 0; i < MAX_SOCK * 4; i++){
+            //printf("yoo bb %d\n", server_numa_node);
 			(server_response_set[s]->server_responses[i]) = (struct server_response*)numa_alloc_onnode(sizeof(struct server_response), server_numa_node);
 			server_response_set[s]->server_responses[i]->flags = 0;
 		}
 
+        //printf("yoo ss %d\n", server_numa_node);
 		chip0[s] = (struct request*)numa_alloc_onnode(4096, 0);
-		chip1[s] = (struct request*)numa_alloc_onnode(4096, 1);
-		chip2[s] = (struct request*)numa_alloc_onnode(4096, 2);
-		chip3[s] = (struct request*)numa_alloc_onnode(4096, 3);
-
+		chip1[s] = (struct request*)numa_alloc_onnode(4096, 0);
+		chip2[s] = (struct request*)numa_alloc_onnode(4096, 0);
+		chip3[s] = (struct request*)numa_alloc_onnode(4096, 0);
+        //printf("yoo1\n");
 		if (mprotect((void*)chip0[s], 4096, PROT_EXEC | PROT_READ | PROT_WRITE) || 
 			mprotect((void*)chip1[s], 4096, PROT_EXEC | PROT_READ | PROT_WRITE) || 
 			mprotect((void*)chip2[s], 4096, PROT_EXEC | PROT_READ | PROT_WRITE) || 
@@ -440,7 +444,9 @@ void launch_servers(int num_of_servers){
 		}
 
 		//prepare server's input arguments
+        //printf("yoo2\n");
 		server_arg[s] = (struct server_args*) numa_alloc_onnode(sizeof(struct server_args), server_numa_node);
+		//printf("yoo3\n");
 		server_arg[s]->server_core = server_core;
 		server_arg[s]->chip0 = chip0[s];
 		server_arg[s]->chip1 = chip1[s];
