@@ -96,6 +96,12 @@ void monetdb_disconnect(monetdb_connection conn) {
 
 #define EMBEDDED_SCRIPT_SIZE_MAX 10485760 // 10 MB
 
+void
+test_ffwd(int *v)
+{
+    printf("FFWD test: %d\n", *v);
+}
+
 char* monetdb_startup(char* dbdir, char silent, char sequential) {
 	str retval = MAL_SUCCEED;
 	char* sqres = NULL;
@@ -107,6 +113,11 @@ char* monetdb_startup(char* dbdir, char silent, char sequential) {
     ffwd_init();
     launch_servers(1);
     ffwd_bind_main_thread();
+
+    uint32_t return_value;
+    int v = 1;
+    GET_CONTEXT()
+    FFWD_EXEC(0, &test_ffwd, return_value, 1, &v)
 
 	if(setjmp(GDKfataljump) != 0) {
 		retval = GDKfatalmsg;
