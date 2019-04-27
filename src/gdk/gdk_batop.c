@@ -1020,16 +1020,133 @@ BATslice(BAT *b, BUN l, BUN h)
 	return NULL;
 }
 
+
+typedef struct {
+    BAT *b;
+} BATkeyedCtx;
+
+void
+_BATkeyed(BATkeyedCtx *ctx)
+{
+    BAT *b = ctx->b;
+    BATiter bi = bat_iterator(b);
+    int (*cmpf)(const void *, const void *) = ATOMcompare(b->ttype);
+    BUN p, q, hb;
+    Hash *hs = NULL;
+
+    b->batDirtydesc = true;
+    if (!b->tkey && b->tnokey[0] == 0 && b->tnokey[1] == 0) {
+        if (b->tsorted || b->trevsorted) {
+            const void *prev = BUNtail(bi, 0);
+            const void *cur;
+            for (q = BUNlast(b), p = 1; p < q; p++) {
+                cur = BUNtail(bi, p);
+                if ((*cmpf)(prev, cur) == 0) {
+                    b->tnokey[0] = p - 1;
+                    b->tnokey[1] = p;
+                    goto doreturn;
+                }
+                prev = cur;
+            }
+            /* we completed the scan: no duplicates */
+            b->tkey = true;
+        } else if (BATcheckhash(b) ||
+                   (b->batPersistence == PERSISTENT &&
+                    BAThash(b) == GDK_SUCCEED) ||
+                   (VIEWtparent(b) != 0 &&
+                    BATcheckhash(BBPdescriptor(VIEWtparent(b))))) {
+            /* we already have a hash table on b, or b is
+             * persistent and we could create a hash
+             * table, or b is a view on a bat that already
+             * has a hash table */
+            BUN lo = 0;
+
+            hs = b->thash;
+#ifndef DISABLE_PARENT_HASH
+            if (b->thash == NULL && VIEWtparent(b) != 0) {
+                BAT *b2 = BBPdescriptor(VIEWtparent(b));
+                lo = (BUN) ((b->theap.base - b2->theap.base) >> b->tshift);
+                hs = b2->thash;
+            }
+#endif
+            for (q = BUNlast(b), p = 0; p < q; p++) {
+                const void *v = BUNtail(bi, p);
+                for (hb = HASHgetlink(hs, p + lo);
+                     hb != HASHnil(hs) && hb >= lo;
+                     hb = HASHgetlink(hs, hb)) {
+                    assert(hb < p + lo);
+                    if ((*cmpf)(v, BUNtail(bi, hb - lo)) == 0) {
+                        b->tnokey[0] = hb - lo;
+                        b->tnokey[1] = p;
+                        goto doreturn;
+                    }
+                }
+            }
+            /* we completed the scan: no duplicates */
+            b->tkey = true;
+        } else {
+            const char *nme;
+            BUN prb;
+            BUN mask;
+
+            GDKclrerr(); /* not interested in BAThash errors */
+            nme = BBP_physical(b->batCacheid);
+            if (ATOMbasetype(b->ttype) == TYPE_bte) {
+                mask = (BUN) 1 << 8;
+                cmpf = NULL; /* no compare needed, "hash" is perfect */
+            } else if (ATOMbasetype(b->ttype) == TYPE_sht) {
+                mask = (BUN) 1 << 16;
+                cmpf = NULL; /* no compare needed, "hash" is perfect */
+            } else {
+                mask = HASHmask(b->batCount);
+                if (mask < ((BUN) 1 << 16))
+                    mask = (BUN) 1 << 16;
+            }
+            if ((hs = GDKzalloc(sizeof(Hash))) == NULL ||
+                snprintf(hs->heap.filename, sizeof(hs->heap.filename),
+                         "%s.hash%d", nme, THRgettid()) < 0 ||
+                HASHnew(hs, b->ttype, BUNlast(b), mask, BUN_NONE) != GDK_SUCCEED) {
+                GDKfree(hs);
+                /* err on the side of caution: not keyed */
+                goto doreturn;
+            }
+            for (q = BUNlast(b), p = 0; p < q; p++) {
+                const void *v = BUNtail(bi, p);
+                prb = HASHprobe(hs, v);
+                for (hb = HASHget(hs, prb);
+                     hb != HASHnil(hs);
+                     hb = HASHgetlink(hs, hb)) {
+                    if (cmpf == NULL ||
+                        (*cmpf)(v, BUNtail(bi, hb)) == 0) {
+                        b->tnokey[0] = hb;
+                        b->tnokey[1] = p;
+                        goto doreturn_free;
+                    }
+                }
+                /* enter into hash table */
+                HASHputlink(hs, p, HASHget(hs, prb));
+                HASHput(hs, prb, p);
+            }
+            doreturn_free:
+            HEAPfree(&hs->heap, true);
+            GDKfree(hs);
+            if (p == q) {
+                /* we completed the complete scan: no
+                 * duplicates */
+                b->tkey = true;
+            }
+        }
+    }
+    doreturn:
+    return;
+}
+
 /* Return whether the BAT has all unique values or not.  It we don't
  * know, invest in a proper check and record the results in the bat
  * descriptor.  */
 bool
 BATkeyed(BAT *b)
 {
-	BATiter bi = bat_iterator(b);
-	int (*cmpf)(const void *, const void *) = ATOMcompare(b->ttype);
-	BUN p, q, hb;
-	Hash *hs = NULL;
 
 	if (b->ttype == TYPE_void)
 		return BATtdense(b) || BATcount(b) <= 1;
@@ -1047,112 +1164,9 @@ BATkeyed(BAT *b)
 	 * use a lock.  We reuse the hash lock for this, not because
 	 * this scanning interferes with hashes, but because it's
 	 * there, and not so likely to be used at the same time. */
-	MT_lock_set(&GDKhashLock(b->batCacheid));
-	b->batDirtydesc = true;
-	if (!b->tkey && b->tnokey[0] == 0 && b->tnokey[1] == 0) {
-		if (b->tsorted || b->trevsorted) {
-			const void *prev = BUNtail(bi, 0);
-			const void *cur;
-			for (q = BUNlast(b), p = 1; p < q; p++) {
-				cur = BUNtail(bi, p);
-				if ((*cmpf)(prev, cur) == 0) {
-					b->tnokey[0] = p - 1;
-					b->tnokey[1] = p;
-					goto doreturn;
-				}
-				prev = cur;
-			}
-			/* we completed the scan: no duplicates */
-			b->tkey = true;
-		} else if (BATcheckhash(b) ||
-			   (b->batPersistence == PERSISTENT &&
-			    BAThash(b) == GDK_SUCCEED) ||
-			   (VIEWtparent(b) != 0 &&
-			    BATcheckhash(BBPdescriptor(VIEWtparent(b))))) {
-			/* we already have a hash table on b, or b is
-			 * persistent and we could create a hash
-			 * table, or b is a view on a bat that already
-			 * has a hash table */
-			BUN lo = 0;
-
-			hs = b->thash;
-#ifndef DISABLE_PARENT_HASH
-			if (b->thash == NULL && VIEWtparent(b) != 0) {
-				BAT *b2 = BBPdescriptor(VIEWtparent(b));
-				lo = (BUN) ((b->theap.base - b2->theap.base) >> b->tshift);
-				hs = b2->thash;
-			}
-#endif
-			for (q = BUNlast(b), p = 0; p < q; p++) {
-				const void *v = BUNtail(bi, p);
-				for (hb = HASHgetlink(hs, p + lo);
-				     hb != HASHnil(hs) && hb >= lo;
-				     hb = HASHgetlink(hs, hb)) {
-					assert(hb < p + lo);
-					if ((*cmpf)(v, BUNtail(bi, hb - lo)) == 0) {
-						b->tnokey[0] = hb - lo;
-						b->tnokey[1] = p;
-						goto doreturn;
-					}
-				}
-			}
-			/* we completed the scan: no duplicates */
-			b->tkey = true;
-		} else {
-			const char *nme;
-			BUN prb;
-			BUN mask;
-
-			GDKclrerr(); /* not interested in BAThash errors */
-			nme = BBP_physical(b->batCacheid);
-			if (ATOMbasetype(b->ttype) == TYPE_bte) {
-				mask = (BUN) 1 << 8;
-				cmpf = NULL; /* no compare needed, "hash" is perfect */
-			} else if (ATOMbasetype(b->ttype) == TYPE_sht) {
-				mask = (BUN) 1 << 16;
-				cmpf = NULL; /* no compare needed, "hash" is perfect */
-			} else {
-				mask = HASHmask(b->batCount);
-				if (mask < ((BUN) 1 << 16))
-					mask = (BUN) 1 << 16;
-			}
-			if ((hs = GDKzalloc(sizeof(Hash))) == NULL ||
-			    snprintf(hs->heap.filename, sizeof(hs->heap.filename),
-				     "%s.hash%d", nme, THRgettid()) < 0 ||
-			    HASHnew(hs, b->ttype, BUNlast(b), mask, BUN_NONE) != GDK_SUCCEED) {
-				GDKfree(hs);
-				/* err on the side of caution: not keyed */
-				goto doreturn;
-			}
-			for (q = BUNlast(b), p = 0; p < q; p++) {
-				const void *v = BUNtail(bi, p);
-				prb = HASHprobe(hs, v);
-				for (hb = HASHget(hs, prb);
-				     hb != HASHnil(hs);
-				     hb = HASHgetlink(hs, hb)) {
-					if (cmpf == NULL ||
-					    (*cmpf)(v, BUNtail(bi, hb)) == 0) {
-						b->tnokey[0] = hb;
-						b->tnokey[1] = p;
-						goto doreturn_free;
-					}
-				}
-				/* enter into hash table */
-				HASHputlink(hs, p, HASHget(hs, prb));
-				HASHput(hs, prb, p);
-			}
-		  doreturn_free:
-			HEAPfree(&hs->heap, true);
-			GDKfree(hs);
-			if (p == q) {
-				/* we completed the complete scan: no
-				 * duplicates */
-				b->tkey = true;
-			}
-		}
-	}
-  doreturn:
-	MT_lock_unset(&GDKhashLock(b->batCacheid));
+    BATkeyedCtx ctx;
+    ctx.b = b;
+    _BATkeyed(&ctx);
 	return b->tkey;
 }
 
