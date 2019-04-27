@@ -14,6 +14,7 @@
  * whether the atom resides in the buns or in a variable storage
  * heap.
  */
+#include <ffwd/ffwd.h>
 #include "monetdb_config.h"
 #include "gdk.h"
 #include "gdk_private.h"
@@ -1166,7 +1167,9 @@ BATkeyed(BAT *b)
 	 * there, and not so likely to be used at the same time. */
     BATkeyedCtx ctx;
     ctx.b = b;
-    _BATkeyed(&ctx);
+    uint64_t return_value = 0;
+    GET_CONTEXT()
+    FFWD_EXEC(0, &_BATkeyed, return_value, 1, &ctx)
 	return b->tkey;
 }
 
