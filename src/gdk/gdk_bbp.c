@@ -70,6 +70,7 @@
  * @end table
  */
 
+#include <ffwd/ffwd.h>
 #include "monetdb_config.h"
 #include "gdk.h"
 #include "gdk_private.h"
@@ -2605,6 +2606,28 @@ BBPdescriptor(bat i)
  * BAT to BBPsaving, so others that want to save or unload this BAT
  * must spin lock on the BBP_status field.
  */
+int
+_BBPsave(BAT *b)
+{
+    bat bid = b->batCacheid;
+    if (BBP_status(bid) & BBPSAVING) {
+        return 1;
+    } else {
+        /* save it */
+        unsigned flags = BBPSAVING;
+
+        if (DELTAdirty(b)) {
+            flags |= BBPSWAPPED;
+            BBP_dirty = true;
+        }
+        if (b->batPersistence != PERSISTENT) {
+            flags |= BBPTMP;
+        }
+        BBP_status_on(bid, flags, "BBPsave");
+        return 0;
+    }
+}
+
 gdk_return
 BBPsave(BAT *b)
 {
@@ -2616,29 +2639,17 @@ BBPsave(BAT *b)
 		/* do nothing */
 		return GDK_SUCCEED;
 
-	if (lock)
-		MT_lock_set(&GDKswapLock(bid));
+	int return_value;
+	if (lock) {
+        GET_CONTEXT()
+        FFWD_EXEC(0, &_BBPsave, return_value, 1, b)
+	} else {
+	    return_value = _BBPsave(b);
+	}
 
-	if (BBP_status(bid) & BBPSAVING) {
-		/* wait until save in other thread completes */
-		if (lock)
-			MT_lock_unset(&GDKswapLock(bid));
+	if (return_value == 1) {
 		BBPspin(bid, "BBPsave", BBPSAVING);
 	} else {
-		/* save it */
-		unsigned flags = BBPSAVING;
-
-		if (DELTAdirty(b)) {
-			flags |= BBPSWAPPED;
-			BBP_dirty = true;
-		}
-		if (b->batPersistence != PERSISTENT) {
-			flags |= BBPTMP;
-		}
-		BBP_status_on(bid, flags, "BBPsave");
-		if (lock)
-			MT_lock_unset(&GDKswapLock(bid));
-
 		IODEBUG fprintf(stderr, "#save %s\n", BATgetId(b));
 
 		/* do the time-consuming work unlocked */
