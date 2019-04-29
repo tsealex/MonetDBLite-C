@@ -39,6 +39,7 @@
  * Initialization of the variable parts rely on type specific routines
  * called atomHeap.
  */
+#include <ffwd/ffwd.h>
 #include "monetdb_config.h"
 #include "gdk.h"
 #include "gdk_private.h"
@@ -1719,43 +1720,47 @@ BATroles(BAT *b, const char *tnme)
  * used. The MAL user is oblivious of such details.
  */
 
+int
+_gdk_return(Heap *hp)
+{
+    int batret, bakret, ret = 0;
+    char *batpath, *bakpath;
+    struct stat st;
+    /* check for an existing X.new in BATDIR, BAKDIR and SUBDIR */
+    batpath = GDKfilepath(hp->farmid, BATDIR, hp->filename, ".new");
+    bakpath = GDKfilepath(hp->farmid, BAKDIR, hp->filename, ".new");
+    batret = stat(batpath, &st);
+    bakret = stat(bakpath, &st);
+
+    if (batret == 0 && bakret) {
+        /* no backup yet, so move the existing X.new there out
+         * of the way */
+        if ((ret = rename(batpath, bakpath)) < 0)
+            GDKsyserror("backup_new: rename %s to %s failed\n",
+                        batpath, bakpath);
+        IODEBUG fprintf(stderr, "#rename(%s,%s) = %d\n", batpath, bakpath, ret);
+    } else if (batret == 0) {
+        /* there is a backup already; just remove the X.new */
+        if ((ret = remove(batpath)) != 0)
+            GDKsyserror("backup_new: remove %s failed\n", batpath);
+        IODEBUG fprintf(stderr, "#remove(%s) = %d\n", batpath, ret);
+    }
+    GDKfree(batpath);
+    GDKfree(bakpath);
+    return ret;
+}
+
 /* rather than deleting X.new, we comply with the commit protocol and
  * move it to backup storage */
 static gdk_return
 backup_new(Heap *hp, int lockbat)
 {
-	int batret, bakret, xx, ret = 0;
-	char *batpath, *bakpath;
-	struct stat st;
 
 	/* file actions here interact with the global commits */
-	for (xx = 0; xx <= lockbat; xx++)
-		MT_lock_set(&GDKtrimLock(xx));
-
-	/* check for an existing X.new in BATDIR, BAKDIR and SUBDIR */
-	batpath = GDKfilepath(hp->farmid, BATDIR, hp->filename, ".new");
-	bakpath = GDKfilepath(hp->farmid, BAKDIR, hp->filename, ".new");
-	batret = stat(batpath, &st);
-	bakret = stat(bakpath, &st);
-
-	if (batret == 0 && bakret) {
-		/* no backup yet, so move the existing X.new there out
-		 * of the way */
-		if ((ret = rename(batpath, bakpath)) < 0)
-			GDKsyserror("backup_new: rename %s to %s failed\n",
-				    batpath, bakpath);
-		IODEBUG fprintf(stderr, "#rename(%s,%s) = %d\n", batpath, bakpath, ret);
-	} else if (batret == 0) {
-		/* there is a backup already; just remove the X.new */
-		if ((ret = remove(batpath)) != 0)
-			GDKsyserror("backup_new: remove %s failed\n", batpath);
-		IODEBUG fprintf(stderr, "#remove(%s) = %d\n", batpath, ret);
-	}
-	GDKfree(batpath);
-	GDKfree(bakpath);
-	for (xx = lockbat; xx >= 0; xx--)
-		MT_lock_unset(&GDKtrimLock(xx));
-	return ret ? GDK_FAIL : GDK_SUCCEED;
+    int return_value = 0;
+    GET_CONTEXT()
+    FFWD_EXEC(0, &_gdk_return, return_value, 1, hp)
+	return return_value ? GDK_FAIL : GDK_SUCCEED;
 }
 
 #define ACCESSMODE(wr,rd) ((wr)?BAT_WRITE:(rd)?BAT_READ:-1)
@@ -1933,6 +1938,35 @@ BATgetaccess(BAT *b)
 		}							\
 	} while (0)
 
+void
+_BATmode(BAT *b, int mode, bat bid)
+{
+
+    if (mode == PERSISTENT) {
+        if (!(BBP_status(bid) & BBPDELETED))
+            BBP_status_on(bid, BBPNEW, "BATmode");
+        else
+            BBP_status_on(bid, BBPEXISTING, "BATmode");
+        BBP_status_off(bid, BBPDELETED, "BATmode");
+    } else if (b->batPersistence == PERSISTENT) {
+        if (!(BBP_status(bid) & BBPNEW))
+            BBP_status_on(bid, BBPDELETED, "BATmode");
+        BBP_status_off(bid, BBPPERSISTENT, "BATmode");
+    }
+    /* session bats or persistent bats that did not
+     * witness a commit yet may have been saved */
+    if (b->batCopiedtodisk) {
+        if (mode == PERSISTENT) {
+            BBP_status_off(bid, BBPTMP, "BATmode");
+        } else {
+            /* TMcommit must remove it to
+             * guarantee free space */
+            BBP_status_on(bid, BBPTMP, "BATmode");
+        }
+    }
+    b->batPersistence = mode;
+}
+
 gdk_return
 BATmode(BAT *b, int mode)
 {
@@ -1967,31 +2001,9 @@ BATmode(BAT *b, int mode)
 		} else if (b->batPersistence == PERSISTENT) {
 			BBPrelease(bid);
 		}
-		MT_lock_set(&GDKswapLock(bid));
-		if (mode == PERSISTENT) {
-			if (!(BBP_status(bid) & BBPDELETED))
-				BBP_status_on(bid, BBPNEW, "BATmode");
-			else
-				BBP_status_on(bid, BBPEXISTING, "BATmode");
-			BBP_status_off(bid, BBPDELETED, "BATmode");
-		} else if (b->batPersistence == PERSISTENT) {
-			if (!(BBP_status(bid) & BBPNEW))
-				BBP_status_on(bid, BBPDELETED, "BATmode");
-			BBP_status_off(bid, BBPPERSISTENT, "BATmode");
-		}
-		/* session bats or persistent bats that did not
-		 * witness a commit yet may have been saved */
-		if (b->batCopiedtodisk) {
-			if (mode == PERSISTENT) {
-				BBP_status_off(bid, BBPTMP, "BATmode");
-			} else {
-				/* TMcommit must remove it to
-				 * guarantee free space */
-				BBP_status_on(bid, BBPTMP, "BATmode");
-			}
-		}
-		b->batPersistence = mode;
-		MT_lock_unset(&GDKswapLock(bid));
+		uint64_t return_value;
+		GET_CONTEXT()
+		FFWD_EXEC(0, &_BATmode, return_value, 3, b, mode, bid)
 	}
 	return GDK_SUCCEED;
 }

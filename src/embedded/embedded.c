@@ -96,10 +96,20 @@ void monetdb_disconnect(monetdb_connection conn) {
 
 #define EMBEDDED_SCRIPT_SIZE_MAX 10485760 // 10 MB
 
-void
-test_ffwd(int *v)
+typedef struct {
+    double val;
+    char *str;
+} test_ffwd_ctx, *p_test_ffwd_ctx;
+
+// An example of returning from a FFWD function. (You can return an uint64 number)
+test_ffwd_ctx*
+test_ffwd(int v)
 {
-    printf("FFWD test: %d\n", *v);
+    printf("FFWD test: %d\n", v);
+    test_ffwd_ctx* ctx = (test_ffwd_ctx*) malloc(sizeof(test_ffwd_ctx));
+    ctx->str = "nonono";
+    ctx->val = 50;
+    return ctx;
 }
 
 char* monetdb_startup(char* dbdir, char silent, char sequential) {
@@ -114,10 +124,12 @@ char* monetdb_startup(char* dbdir, char silent, char sequential) {
     launch_servers(1);
     ffwd_bind_main_thread();
 
-    uint32_t return_value;
+    p_test_ffwd_ctx return_value;
     int v = 1;
     GET_CONTEXT()
-    FFWD_EXEC(0, &test_ffwd, return_value, 1, &v)
+    FFWD_EXEC(0, &test_ffwd, return_value, 1, v)
+    printf("%f %s\n", return_value->val, return_value->str);
+    free(return_value);
 
 	if(setjmp(GDKfataljump) != 0) {
 		retval = GDKfatalmsg;
