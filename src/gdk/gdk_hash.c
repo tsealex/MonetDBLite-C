@@ -32,6 +32,7 @@
  * after three cycles to direct hashing.
  */
 
+#include <ffwd/ffwd.h>
 #include "monetdb_config.h"
 #include "gdk.h"
 #include "gdk_cand.h"
@@ -662,18 +663,25 @@ HASHdestroy(BAT *b)
 }
 
 void
+_HASHfree(BAT *b)
+{
+    if (b->thash && b->thash != (Hash *) 1) {
+        bool dirty = b->thash->heap.dirty;
+
+        HEAPfree(&b->thash->heap, dirty);
+        GDKfree(b->thash);
+        b->thash = dirty ? NULL : (Hash *) 1;
+    }
+}
+
+void
 HASHfree(BAT *b)
 {
 	if (b) {
-		MT_lock_set(&GDKhashLock(b->batCacheid));
-		if (b->thash && b->thash != (Hash *) 1) {
-			bool dirty = b->thash->heap.dirty;
-
-			HEAPfree(&b->thash->heap, dirty);
-			GDKfree(b->thash);
-			b->thash = dirty ? NULL : (Hash *) 1;
-		}
-		MT_lock_unset(&GDKhashLock(b->batCacheid));
+	    // TODO: Replace all the locks similar to &GDKhashLock(b->batCacheid))
+	    int return_value;
+        GET_CONTEXT()
+        FFWD_EXEC(0, &_HASHfree, return_value, 1, b)
 	}
 }
 
