@@ -51,7 +51,7 @@ memo_find(list *memo, const char *name)
 	int key = hash_key(name);
 	sql_hash_e *he;
 
-	MT_lock_set(&memo->ht_lock);
+	MT_lock_set(&memo->ht_lock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	he = memo->ht->buckets[key&(memo->ht->size-1)]; 
 	for (; he; he = he->chain) {
 		memoitem *mi = he->value;
@@ -449,7 +449,7 @@ memo_create(mvc *sql, list *rels )
 	list *memo = sa_list(sql->sa);
 	node *n;
 
-	MT_lock_set(&memo->ht_lock);
+	MT_lock_set(&memo->ht_lock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	memo->ht = hash_new(sql->sa, len*len, (fkeyvalue)&memoitem_key);
 	MT_lock_unset(&memo->ht_lock);
 	for(n = rels->h; n; n = n->next) {

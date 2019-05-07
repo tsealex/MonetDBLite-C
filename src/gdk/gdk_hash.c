@@ -168,7 +168,7 @@ BATcheckhash(BAT *b)
 {
 	bool ret;
 
-	MT_lock_set(&GDKhashLock(b->batCacheid));
+	MT_lock_set(&GDKhashLock(b->batCacheid)); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	if (b->thash == (Hash *) 1) {
 		Hash *h;
 		const char *nme = BBP_physical(b->batCacheid);
@@ -247,7 +247,7 @@ BAThashsync(void *arg)
 
 	ALGODEBUG t0 = GDKusec();
 
-	MT_lock_set(&GDKhashLock(b->batCacheid));
+	MT_lock_set(&GDKhashLock(b->batCacheid)); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	if (b->thash != NULL) {
 		Heap *hp = &b->thash->heap;
 		if (HEAPsave(hp, hp->filename, NULL) == GDK_SUCCEED) {
@@ -567,7 +567,7 @@ BAThash(BAT *b)
 	if (BATcheckhash(b)) {
 		return GDK_SUCCEED;
 	}
-	MT_lock_set(&GDKhashLock(b->batCacheid));
+	MT_lock_set(&GDKhashLock(b->batCacheid)); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	if (b->thash == NULL) {
 		if ((b->thash = BAThash_impl(b, NULL, "thash")) == NULL) {
 			MT_lock_unset(&GDKhashLock(b->batCacheid));
@@ -637,7 +637,7 @@ HASHdestroy(BAT *b)
 {
 	if (b) {
 		Hash *hs;
-		MT_lock_set(&GDKhashLock(b->batCacheid));
+		MT_lock_set(&GDKhashLock(b->batCacheid)); printf("Lock %s:%d\n", __FILE__, __LINE__);
 		hs = b->thash;
 		b->thash = NULL;
 		MT_lock_unset(&GDKhashLock(b->batCacheid));
@@ -665,7 +665,7 @@ void
 HASHfree(BAT *b)
 {
 	if (b) {
-		MT_lock_set(&GDKhashLock(b->batCacheid));
+		MT_lock_set(&GDKhashLock(b->batCacheid)); printf("Lock %s:%d\n", __FILE__, __LINE__);
 		if (b->thash && b->thash != (Hash *) 1) {
 			bool dirty = b->thash->heap.dirty;
 

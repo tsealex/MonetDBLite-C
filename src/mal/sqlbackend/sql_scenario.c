@@ -172,7 +172,7 @@ SQLexit(Client c)
 #ifdef _SQL_SCENARIO_DEBUG
 	fprintf(stderr, "#SQLexit\n");
 #endif
-	MT_lock_set(&sql_contextLock);
+	MT_lock_set(&sql_contextLock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	if (SQLinitialized) {
 		Scenario ms = findScenario("msql"), s = findScenario("sql");
 		for (c = mal_clients; c < mal_clients + MAL_MAXCLIENTS; c++) {
@@ -374,7 +374,7 @@ SQLinit(Client c)
 	MT_lock_init(&sql_contextLock, "sql_contextLock");
 #endif
 
-	MT_lock_set(&sql_contextLock);
+	MT_lock_set(&sql_contextLock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	memset((char *) &be_funcs, 0, sizeof(backend_functions));
 	be_funcs.fstack = &monet5_freestack;
 	be_funcs.fcode = &monet5_freecode;
@@ -682,7 +682,7 @@ SQLinitClient(Client c)
 #endif
 	if (SQLinitialized == 0)// && (msg = SQLprelude(NULL)) != MAL_SUCCEED)
 		return msg;
-	MT_lock_set(&sql_contextLock);
+	MT_lock_set(&sql_contextLock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 #ifndef HAVE_EMBEDDED
 	msg = SQLprepareClient(c, 1);
 #else

@@ -179,7 +179,7 @@ q_enqueue(Queue *q, FlowEvent d)
 {
 	assert(q);
 	assert(d);
-	MT_lock_set(&q->l);
+	MT_lock_set(&q->l); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	q_enqueue_(q, d);
 	MT_lock_unset(&q->l);
 	MT_sema_up(&q->s);
@@ -215,7 +215,7 @@ q_requeue(Queue *q, FlowEvent d)
 {
 	assert(q);
 	assert(d);
-	MT_lock_set(&q->l);
+	MT_lock_set(&q->l); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	q_requeue_(q, d);
 	MT_lock_unset(&q->l);
 	MT_sema_up(&q->s);
@@ -232,7 +232,7 @@ q_dequeue(Queue *q, Client cntxt)
 	MT_sema_down(&q->s);
 	if (ATOMIC_GET(exiting, exitingLock))
 		return NULL;
-	MT_lock_set(&q->l);
+	MT_lock_set(&q->l); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	if (cntxt) {
 		int i, minpc = -1;
 
@@ -348,7 +348,7 @@ DFLOWworker(void *T)
 		fprintf(stderr,"DFLOWworker:Could not allocate GDKerrbuf\n");
 	else
 		GDKclrerr();
-	MT_lock_set(&dataflowLock);
+	MT_lock_set(&dataflowLock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	cntxt = t->cntxt;
 	MT_lock_unset(&dataflowLock);
 	if (cntxt) {
@@ -357,7 +357,7 @@ DFLOWworker(void *T)
 	}
 	while (1) {
 		if (fnxt == 0) {
-			MT_lock_set(&dataflowLock);
+			MT_lock_set(&dataflowLock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 			cntxt = t->cntxt;
 			MT_lock_unset(&dataflowLock);
 			fe = q_dequeue(todo, cntxt);
@@ -386,7 +386,7 @@ DFLOWworker(void *T)
 		assert(flow);
 
 		/* whenever we have a (concurrent) error, skip it */
-		MT_lock_set(&flow->flowlock);
+		MT_lock_set(&flow->flowlock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 		if (flow->error) {
 			MT_lock_unset(&flow->flowlock);
 			q_enqueue(flow->done, fe);
@@ -420,11 +420,11 @@ DFLOWworker(void *T)
 		for( i = 0; i < p->argc; i++)
 			setVarWorker(flow->mb,getArg(p,i),thr->tid);
 
-		MT_lock_set(&flow->flowlock);
+		MT_lock_set(&flow->flowlock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 		fe->state = DFLOWwrapup;
 		MT_lock_unset(&flow->flowlock);
 		if (error) {
-			MT_lock_set(&flow->flowlock);
+			MT_lock_set(&flow->flowlock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 			/* only collect one error (from one thread, needed for stable testing) */
 			if (!flow->error)
 				flow->error = error;
@@ -458,7 +458,7 @@ DFLOWworker(void *T)
 		}
 	}
 #endif
-		MT_lock_set(&flow->flowlock);
+		MT_lock_set(&flow->flowlock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 
 		for (last = fe->pc - flow->start; last >= 0 && (i = flow->nodes[last]) > 0; last = flow->edges[last])
 			if (flow->status[i].state == DFLOWpending &&
@@ -479,7 +479,7 @@ DFLOWworker(void *T)
 	GDKfree(GDKerrbuf);
 	GDKsetbuf(0);
 	THRdel(thr);
-	MT_lock_set(&dataflowLock);
+	MT_lock_set(&dataflowLock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	t->flag = EXITED;
 	MT_lock_unset(&dataflowLock);
 }
@@ -497,7 +497,7 @@ DFLOWinitialize(void)
 	int i, limit;
 	int created = 0;
 
-	MT_lock_set(&mal_contextLock);
+	MT_lock_set(&mal_contextLock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	if (todo) {
 		/* somebody else beat us to it */
 		MT_lock_unset(&mal_contextLock);
@@ -517,7 +517,7 @@ DFLOWinitialize(void)
 	ATOMIC_INIT(exitingLock);
 	MT_lock_init(&dataflowLock, "dataflowLock");
 #endif
-	MT_lock_set(&dataflowLock);
+	MT_lock_set(&dataflowLock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	for (i = 0; i < limit; i++) {
 		workers[i].flag = RUNNING;
 		workers[i].cntxt = NULL;
@@ -734,7 +734,7 @@ DFLOWscheduler(DataFlow flow, struct worker *w)
 	/* initialize the eligible statements */
 	fe = flow->status;
 
-	MT_lock_set(&flow->flowlock);
+	MT_lock_set(&flow->flowlock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	for (i = 0; i < actions; i++)
 		if (fe[i].blocks == 0) {
 #ifdef USE_MAL_ADMISSION
@@ -768,7 +768,7 @@ DFLOWscheduler(DataFlow flow, struct worker *w)
 		 * drops to zero we can scheduler it we do it here instead of the scheduler
 		 */
 
-		MT_lock_set(&flow->flowlock);
+		MT_lock_set(&flow->flowlock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 		tasks++;
 		for (last = f->pc - flow->start; last >= 0 && (i = flow->nodes[last]) > 0; last = flow->edges[last])
 			if (flow->status[i].state == DFLOWpending) {
@@ -786,7 +786,7 @@ DFLOWscheduler(DataFlow flow, struct worker *w)
 	}
 	/* release the worker from its specific task (turn it into a
 	 * generic worker) */
-	MT_lock_set(&dataflowLock);
+	MT_lock_set(&dataflowLock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	w->cntxt = NULL;
 	MT_lock_unset(&dataflowLock);
 	/* wrap up errors */
@@ -851,7 +851,7 @@ runMALdataflow(Client cntxt, MalBlkPtr mb, int startpc, int stoppc, MalStkPtr st
 	/* in addition, create one more worker that will only execute
 	 * tasks for the current client to compensate for our waiting
 	 * until all work is done */
-	MT_lock_set(&dataflowLock);
+	MT_lock_set(&dataflowLock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	/* join with already exited threads */
 	{
 		int joined;
@@ -864,7 +864,7 @@ runMALdataflow(Client cntxt, MalBlkPtr mb, int startpc, int stoppc, MalStkPtr st
 					joined = 1;
 					MT_lock_unset(&dataflowLock);
 					MT_join_thread(workers[i].id);
-					MT_lock_set(&dataflowLock);
+					MT_lock_set(&dataflowLock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 					workers[i].flag = IDLE;
 				}
 			}
@@ -976,7 +976,7 @@ runMALdataflow(Client cntxt, MalBlkPtr mb, int startpc, int stoppc, MalStkPtr st
 	GDKfree(flow);
 
 	/* we created one worker, now tell one worker to exit again */
-	MT_lock_set(&todo->l);
+	MT_lock_set(&todo->l); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	todo->exitcount++;
 	MT_lock_unset(&todo->l);
 	MT_sema_up(&todo->s);
@@ -1004,13 +1004,13 @@ stopMALdataflow(void)
 	if (todo) {
 		for (i = 0; i < THREADS; i++)
 			MT_sema_up(&todo->s);
-		MT_lock_set(&dataflowLock);
+		MT_lock_set(&dataflowLock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 		for (i = 0; i < THREADS; i++) {
 			if (workers[i].flag != IDLE && workers[i].flag != JOINING) {
 				workers[i].flag = JOINING;
 				MT_lock_unset(&dataflowLock);
 				MT_join_thread(workers[i].id);
-				MT_lock_set(&dataflowLock);
+				MT_lock_set(&dataflowLock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 			}
 			workers[i].flag = IDLE;
 		}

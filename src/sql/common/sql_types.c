@@ -751,7 +751,7 @@ sql_find_func(sql_allocator *sa, sql_schema *s, const char *sqlfname, int nrargs
 	int filt = (type == F_FUNC)?F_FILT:type;
 
 	assert(nrargs);
-	MT_lock_set(&funcs->ht_lock);
+	MT_lock_set(&funcs->ht_lock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	he = funcs->ht->buckets[key&(funcs->ht->size-1)]; 
 	if (prev) {
 		for (; he && !found; he = he->chain) 
@@ -778,7 +778,7 @@ sql_find_func(sql_allocator *sa, sql_schema *s, const char *sqlfname, int nrargs
 			return fres;
 			*/
 		if (s->funcs.set) {
-			MT_lock_set(&s->funcs.set->ht_lock);
+			MT_lock_set(&s->funcs.set->ht_lock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 			if (s->funcs.set->ht) {
 				he = s->funcs.set->ht->buckets[key&(s->funcs.set->ht->size-1)];
 				if (prev) {
@@ -829,7 +829,7 @@ sql_find_funcs(sql_allocator *sa, sql_schema *s, const char *sqlfname, int nrarg
 	list *res = sa_list(sa);
 
 	assert(nrargs);
-	MT_lock_set(&funcs->ht_lock);
+	MT_lock_set(&funcs->ht_lock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	he = funcs->ht->buckets[key&(funcs->ht->size-1)]; 
 	for (; he; he = he->chain) {
 		sql_func *f = he->value;
@@ -844,7 +844,7 @@ sql_find_funcs(sql_allocator *sa, sql_schema *s, const char *sqlfname, int nrarg
 		node *n;
 
 		if (s->funcs.set) {
-			MT_lock_set(&s->funcs.set->ht_lock);
+			MT_lock_set(&s->funcs.set->ht_lock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 			if (s->funcs.set->ht) {
 				he = s->funcs.set->ht->buckets[key&(s->funcs.set->ht->size-1)];
 				for (; he; he = he->chain) {
@@ -1855,7 +1855,7 @@ types_init(sql_allocator *sa, int debug)
 	localtypes = sa_list(sa);
 	aggrs = sa_list(sa);
 	funcs = sa_list(sa);
-	MT_lock_set(&funcs->ht_lock);
+	MT_lock_set(&funcs->ht_lock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	funcs->ht = hash_new(sa, 1024, (fkeyvalue)&base_key);
 	MT_lock_unset(&funcs->ht_lock);
 	sqltypeinit( sa );

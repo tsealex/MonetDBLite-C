@@ -255,7 +255,7 @@ addPipeDefinition(Client cntxt, const char *name, const char *pipe)
 	str msg;
 	struct PIPELINES oldpipe;
 
-	MT_lock_set(&pipeLock);
+	MT_lock_set(&pipeLock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	for (i = 0; i < MAXOPTPIPES && pipes[i].name; i++)
 		if (strcmp(name, pipes[i].name) == 0)
 			break;
@@ -289,7 +289,7 @@ addPipeDefinition(Client cntxt, const char *name, const char *pipe)
 	msg = compileOptimizer(cntxt, name);
 	if (msg) {
 		/* failed: restore old value */
-		MT_lock_set(&pipeLock);
+		MT_lock_set(&pipeLock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 		GDKfree(pipes[i].name);
 		GDKfree(pipes[i].def);
 		GDKfree(pipes[i].status);
@@ -428,7 +428,7 @@ validateOptimizerPipes(void)
 	int i;
 	str msg = MAL_SUCCEED;
 
-	MT_lock_set(&mal_contextLock);
+	MT_lock_set(&mal_contextLock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	for (i = 0; i < MAXOPTPIPES && pipes[i].def; i++)
 		if (pipes[i].mb) {
 			msg = validatePipe(pipes[i].mb);
@@ -451,7 +451,7 @@ compileOptimizer(Client cntxt, const char *name)
 	str msg = MAL_SUCCEED;
 	Symbol fcn, compiled;
 
-	MT_lock_set(&pipeLock);
+	MT_lock_set(&pipeLock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	for (i = 0; i < MAXOPTPIPES && pipes[i].name; i++) 
 		if (strcmp(pipes[i].name, name) == 0 && pipes[i].mb == 0) {
 			/* precompile a pipeline as MAL string */

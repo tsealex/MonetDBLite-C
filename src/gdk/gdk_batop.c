@@ -1187,7 +1187,7 @@ BATordered(BAT *b)
 	 * use a lock.  We reuse the hash lock for this, not because
 	 * this scanning interferes with hashes, but because it's
 	 * there, and not so likely to be used at the same time. */
-	MT_lock_set(&GDKhashLock(b->batCacheid));
+	MT_lock_set(&GDKhashLock(b->batCacheid)); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	if (!b->tsorted && b->tnosorted == 0) {
 		BATiter bi = bat_iterator(b);
 		int (*cmpf)(const void *, const void *) = ATOMcompare(b->ttype);
@@ -1260,7 +1260,7 @@ BATordered_rev(BAT *b)
 		return false;
 	if (b->ttype == TYPE_void)
 		return is_oid_nil(b->tseqbase);
-	MT_lock_set(&GDKhashLock(b->batCacheid));
+	MT_lock_set(&GDKhashLock(b->batCacheid)); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	if (!b->trevsorted && b->tnorevsorted == 0) {
 		BATiter bi = bat_iterator(b);
 		int (*cmpf)(const void *, const void *) = ATOMcompare(b->ttype);
@@ -1654,7 +1654,7 @@ BATsort(BAT **sorted, BAT **order, BAT **groups,
 		bn->tsorted = !reverse;
 		bn->trevsorted = reverse;
 		if (m != NULL) {
-			MT_lock_set(&GDKhashLock(pb->batCacheid));
+			MT_lock_set(&GDKhashLock(pb->batCacheid)); printf("Lock %s:%d\n", __FILE__, __LINE__);
 			if (pb->torderidx == NULL) {
 				pb->batDirtydesc = true;
 				pb->torderidx = m;

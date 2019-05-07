@@ -126,7 +126,7 @@ MALadmission(lng argclaim, lng hotclaim)
 	if (argclaim == 0)
 		return 0;
 
-	MT_lock_set(&admissionLock);
+	MT_lock_set(&admissionLock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	if (memoryclaims < 0)
 		memoryclaims = 0;
 	if (memorypool <= 0 && memoryclaims == 0)

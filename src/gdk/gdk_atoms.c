@@ -173,7 +173,7 @@ ATOMallocate(const char *id)
 		return int_nil;
 	}
 
-	MT_lock_set(&GDKthreadLock);
+	MT_lock_set(&GDKthreadLock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	t = ATOMindex(id);
 	if (t < 0) {
 		t = -t;
@@ -2141,7 +2141,7 @@ ATOMunknown_find(const char *nme)
 	int i, j = 0;
 
 	/* first try to find the atom */
-	MT_lock_set(&GDKthreadLock);
+	MT_lock_set(&GDKthreadLock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	for (i = 1; i < MAXATOMS; i++) {
 		if (unknown[i]) {
 			if (strcmp(unknown[i], nme) == 0) {
@@ -2176,7 +2176,7 @@ ATOMunknown_clean(void)
 {
 	int i;
 
-	MT_lock_set(&GDKthreadLock);
+	MT_lock_set(&GDKthreadLock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	for (i = 1; i < MAXATOMS; i++) {
 		if(unknown[i]) {
 			GDKfree(unknown[i]);

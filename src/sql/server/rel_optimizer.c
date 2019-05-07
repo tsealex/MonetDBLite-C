@@ -2065,7 +2065,7 @@ rel_rename_exps( mvc *sql, list *exps1, list *exps2)
 			rname = e2->rname;
 		exp_setname(sql->sa, e2, rname, e1->name );
 	}
-	MT_lock_set(&exps2->ht_lock);
+	MT_lock_set(&exps2->ht_lock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	exps2->ht = NULL;
 	MT_lock_unset(&exps2->ht_lock);
 }
@@ -8250,7 +8250,7 @@ rel_merge_table_rewrite(int *changes, mvc *sql, sql_rel *rel)
 
 					prel = rel_rename_part(sql, prel, tname, t);
 
-					MT_lock_set(&prel->exps->ht_lock);
+					MT_lock_set(&prel->exps->ht_lock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 					prel->exps->ht = NULL;
 					MT_lock_unset(&prel->exps->ht_lock);
 					exps = sa_list(sql->sa);

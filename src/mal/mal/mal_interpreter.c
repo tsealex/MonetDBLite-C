@@ -898,7 +898,7 @@ str runMALsequence(Client cntxt, MalBlkPtr mb, int startpc,
 			/* assure correct variable type */
 			if (getVarType(mb, exceptionVar) == TYPE_str) {
 				/* watch out for concurrent access */
-				MT_lock_set(&mal_contextLock);
+				MT_lock_set(&mal_contextLock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 				v = &stk->stk[exceptionVar];
 				if (v->val.sval)
 					freeException(v->val.sval);    /* old exception*/

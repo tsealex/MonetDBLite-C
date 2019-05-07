@@ -130,7 +130,7 @@ list_append(list *l, void *data)
 	}
 	l->t = n;
 	l->cnt++;
-	MT_lock_set(&l->ht_lock);
+	MT_lock_set(&l->ht_lock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	if (l->ht) {
 		int key = l->ht->key(data);
 	
@@ -160,7 +160,7 @@ list_append_before(list *l, node *m, void *data)
 		p->next = n;
 	}
 	l->cnt++;
-	MT_lock_set(&l->ht_lock);
+	MT_lock_set(&l->ht_lock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	if (l->ht) {
 		int key = l->ht->key(data);
 	
@@ -186,7 +186,7 @@ list_prepend(list *l, void *data)
 	n->next = l->h;
 	l->h = n;
 	l->cnt++;
-	MT_lock_set(&l->ht_lock);
+	MT_lock_set(&l->ht_lock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	if (l->ht) {
 		int key = l->ht->key(data);
 	
@@ -235,7 +235,7 @@ list_remove_node(list *l, node *n)
 		l->t = p;
 	node_destroy(l, n);
 	l->cnt--;
-	MT_lock_set(&l->ht_lock);
+	MT_lock_set(&l->ht_lock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	if (l->ht && data)
 		hash_delete(l->ht, data);
 	MT_lock_unset(&l->ht_lock);
@@ -252,7 +252,7 @@ list_remove_data(list *s, void *data)
 		return;
 	for (n = s->h; n; n = n->next) {
 		if (n->data == data) {
-			MT_lock_set(&s->ht_lock);
+			MT_lock_set(&s->ht_lock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 			if (s->ht && n->data)
 				hash_delete(s->ht, n->data);
 			MT_lock_unset(&s->ht_lock);
@@ -279,7 +279,7 @@ list_move_data(list *s, list *d, void *data)
 
 	for (n = s->h; n; n = n->next) {
 		if (n->data == data) {
-			MT_lock_set(&s->ht_lock);
+			MT_lock_set(&s->ht_lock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 			if (s->ht && n->data)
 				hash_delete(s->ht, n->data);
 			MT_lock_unset(&s->ht_lock);

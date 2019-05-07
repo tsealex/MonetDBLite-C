@@ -117,7 +117,7 @@ char* monetdb_startup(char* dbdir, char silent, char sequential) {
 	char* sqres = NULL;
 	monetdb_result* res = NULL;
 	void* c;
-	MT_lock_set(&embedded_lock);
+	MT_lock_set(&embedded_lock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	GDKfataljumpenable = 1;
 
     ffwd_init();
@@ -497,7 +497,7 @@ void monetdb_register_progress(monetdb_connection conn, monetdb_progress_callbac
 	if (!MCvalid(c)) {
 		return;
 	}
-	MT_lock_set(&c->progress_lock);
+	MT_lock_set(&c->progress_lock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	c->progress_callback = callback;
 	c->progress_data = data;
 	MT_lock_unset(&c->progress_lock);
@@ -509,7 +509,7 @@ void monetdb_unregister_progress(monetdb_connection conn) {
 	if (!MCvalid(c)) {
 		return;
 	}
-	MT_lock_set(&c->progress_lock);
+	MT_lock_set(&c->progress_lock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	c->progress_callback = NULL;
 	//if(c->progress_data)
 		//free(c->progress_data);
@@ -518,7 +518,7 @@ void monetdb_unregister_progress(monetdb_connection conn) {
 }
 
 void monetdb_shutdown(void) {
-	MT_lock_set(&embedded_lock);
+	MT_lock_set(&embedded_lock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	if (monetdb_embedded_initialized) {
 		mal_exit();
 		fclose(embedded_stdout);

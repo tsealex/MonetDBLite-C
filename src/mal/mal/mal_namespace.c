@@ -56,7 +56,7 @@ void mal_namespace_reset(void) {
 	struct namespace *ns;
 
 	/* assume we are at the end of the server session */
-	MT_lock_set(&mal_namespaceLock);
+	MT_lock_set(&mal_namespaceLock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	memset(hash, 0, sizeof(hash));
 	while (namespace) {
 		ns = namespace->next;
@@ -85,7 +85,7 @@ static str findName(const char *nme, size_t len, int allocate)
 		len = IDLENGTH;
 	}
 	NME_HASH(nme, key, len);
-	MT_lock_set(&mal_namespaceLock);
+	MT_lock_set(&mal_namespaceLock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	for (n = &hash[key]; *n; n = &(*n)->next) {
 #ifdef KEEP_SORTED
 		/* keep each list sorted on length, then name */

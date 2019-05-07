@@ -1589,7 +1589,7 @@ exps_bind_column( list *exps, const char *cname, int *ambiguous )
 		node *en;
 
 		if (exps) {
-			MT_lock_set(&exps->ht_lock);
+			MT_lock_set(&exps->ht_lock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 			if (!exps->ht && list_length(exps) > HASH_MIN_SIZE) {
 				exps->ht = hash_new(exps->sa, list_length(exps), (fkeyvalue)&exp_key);
 				if (exps->ht == NULL) {
@@ -1652,7 +1652,7 @@ exps_bind_column2( list *exps, const char *rname, const char *cname )
 		node *en;
 
 		if (exps) {
-			MT_lock_set(&exps->ht_lock);
+			MT_lock_set(&exps->ht_lock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 			if (!exps->ht && list_length(exps) > HASH_MIN_SIZE) {
 				exps->ht = hash_new(exps->sa, list_length(exps), (fkeyvalue)&exp_key);
 				if (exps->ht == NULL) {

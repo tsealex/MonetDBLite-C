@@ -486,11 +486,11 @@ GDKprepareExit(void)
 	if (ATOMIC_TAS(GDKstopped, GDKstoppedLock) != 0)
 		return;
 
-	MT_lock_set(&GDKthreadLock);
+	MT_lock_set(&GDKthreadLock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	for (st = serverthread; st; st = serverthread) {
 		MT_lock_unset(&GDKthreadLock);
 		MT_join_thread(st->pid);
-		MT_lock_set(&GDKthreadLock);
+		MT_lock_set(&GDKthreadLock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 		serverthread = st->next;
 		GDKfree(st);
 	}
@@ -508,7 +508,7 @@ GDKregister(MT_Id pid)
 	if ((st = GDKmalloc(sizeof(struct serverthread))) == NULL)
 		return;
 	st->pid = pid;
-	MT_lock_set(&GDKthreadLock);
+	MT_lock_set(&GDKthreadLock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	st->next = serverthread;
 	serverthread = st;
 	MT_lock_unset(&GDKthreadLock);
@@ -534,11 +534,11 @@ GDKreset(int status, int exit)
 		GDKval = 0;
 	}
 
-	MT_lock_set(&GDKthreadLock);
+	MT_lock_set(&GDKthreadLock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	for (st = serverthread; st; st = serverthread) {
 		MT_lock_unset(&GDKthreadLock);
 		MT_join_thread(st->pid);
-		MT_lock_set(&GDKthreadLock);
+		MT_lock_set(&GDKthreadLock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 		serverthread = st->next;
 		GDKfree(st);
 	}
@@ -548,7 +548,7 @@ GDKreset(int status, int exit)
 	if (status == 0) {
 		/* they had their chance, now kill them */
 		int killed = 0;
-		MT_lock_set(&GDKthreadLock);
+		MT_lock_set(&GDKthreadLock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 		for (t = GDKthreads, s = t + THREADS; t < s; t++) {
 			if (t->pid) {
 				MT_Id victim = t->pid;
@@ -1069,7 +1069,7 @@ THRnew(const char *name)
 	Thread s;
 	MT_Id pid = MT_getpid();
 
-	MT_lock_set(&GDKthreadLock);
+	MT_lock_set(&GDKthreadLock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	s = GDK_find_thread(pid);
 	if (s == NULL) {
 		for (s = GDKthreads, t = s + THREADS; s < t; s++) {
@@ -1111,7 +1111,7 @@ THRdel(Thread t)
 	if (t < GDKthreads || t > GDKthreads + THREADS) {
 		GDKfatal("THRdel: illegal call\n");
 	}
-	MT_lock_set(&GDKthreadLock);
+	MT_lock_set(&GDKthreadLock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 
 	GDKfree(t->name);
 	t->name = NULL;
@@ -1128,7 +1128,7 @@ THRhighwater(void)
 	size_t diff;
 	int rc = 0;
 
-	MT_lock_set(&GDKthreadLock);
+	MT_lock_set(&GDKthreadLock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	s = GDK_find_thread(MT_getpid());
 	if (s != NULL) {
 		c = THRsp();
@@ -1168,7 +1168,7 @@ THRsetdata(int n, ptr val)
 {
 	Thread s;
 
-	MT_lock_set(&GDKthreadLock);
+	MT_lock_set(&GDKthreadLock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	s = GDK_find_thread(MT_getpid());
 	if (s) {
 		assert(val == NULL || s->data[n] == NULL);
@@ -1183,7 +1183,7 @@ THRgetdata(int n)
 	Thread s;
 	void *d;
 
-	MT_lock_set(&GDKthreadLock);
+	MT_lock_set(&GDKthreadLock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	s = GDK_find_thread(MT_getpid());
 	d = s ? s->data[n] : THRdata[n];
 	MT_lock_unset(&GDKthreadLock);
@@ -1196,7 +1196,7 @@ THRgettid(void)
 	Thread s;
 	int t;
 
-	MT_lock_set(&GDKthreadLock);
+	MT_lock_set(&GDKthreadLock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	s = GDK_find_thread(MT_getpid());
 	t = s ? s->tid : 1;
 	MT_lock_unset(&GDKthreadLock);
@@ -1216,7 +1216,7 @@ THRprintf(stream *s, const char *format, ...)
 	if (!s)
 		return -1;
 
-	MT_lock_set(&MT_system_lock);
+	MT_lock_set(&MT_system_lock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	if (*format != '!') {
 		c = '#';
 		if (*format == '#')
@@ -1368,7 +1368,7 @@ GDKmalloc_internal(size_t size)
 #ifndef NDEBUG
 	/* fail malloc for testing purposes depending on set limit */
 	if (GDK_malloc_success_count > 0) {
-		MT_lock_set(&mallocsuccesslock);
+		MT_lock_set(&mallocsuccesslock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 		if (GDK_malloc_success_count > 0)
 			GDK_malloc_success_count--;
 		MT_lock_unset(&mallocsuccesslock);

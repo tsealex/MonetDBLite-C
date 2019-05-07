@@ -110,7 +110,7 @@ list_find_column(backend *be, list *l, const char *rname, const char *name )
 
 	if (!l)
 		return NULL;
-	MT_lock_set(&l->ht_lock);
+	MT_lock_set(&l->ht_lock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	if (!l->ht && list_length(l) > HASH_MIN_SIZE) {
 		l->ht = hash_new(l->sa, MAX(list_length(l), l->expected_cnt), (fkeyvalue)&stmt_key);
 		if (l->ht == NULL) {

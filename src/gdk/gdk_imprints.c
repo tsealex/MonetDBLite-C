@@ -202,7 +202,7 @@ BATcheckimprints(BAT *b)
 		b = BBPdescriptor(VIEWtparent(b));
 	}
 
-	MT_lock_set(&GDKimprintsLock(b->batCacheid));
+	MT_lock_set(&GDKimprintsLock(b->batCacheid)); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	if (b->timprints == (Imprints *) 1) {
 		Imprints *imprints;
 		const char *nme = BBP_physical(b->batCacheid);
@@ -271,7 +271,7 @@ BATimpsync(void *arg)
 	Imprints *imprints;
 	int fd;
 
-	MT_lock_set(&GDKimprintsLock(b->batCacheid));
+	MT_lock_set(&GDKimprintsLock(b->batCacheid)); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	if ((imprints = b->timprints) != NULL) {
 		Heap *hp = &imprints->imprints;
 		if (HEAPsave(hp, hp->filename, NULL) == GDK_SUCCEED) {
@@ -354,7 +354,7 @@ BATimprints(BAT *b)
 			return GDK_SUCCEED;
 		assert(b->timprints == NULL);
 	}
-	MT_lock_set(&GDKimprintsLock(b->batCacheid));
+	MT_lock_set(&GDKimprintsLock(b->batCacheid)); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	if (b->timprints == NULL) {
 		BUN cnt;
 		const char *nme = BBP_physical(b->batCacheid);
@@ -622,7 +622,7 @@ IMPSremove(BAT *b)
 	assert(b->timprints != NULL);
 	assert(!VIEWtparent(b));
 
-	MT_lock_set(&GDKimprintsLock(b->batCacheid));
+	MT_lock_set(&GDKimprintsLock(b->batCacheid)); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	if ((imprints = b->timprints) != NULL) {
 		b->timprints = NULL;
 
@@ -664,7 +664,7 @@ IMPSfree(BAT *b)
 
 	if (b) {
 		assert(b->batCacheid > 0);
-		MT_lock_set(&GDKimprintsLock(b->batCacheid));
+		MT_lock_set(&GDKimprintsLock(b->batCacheid)); printf("Lock %s:%d\n", __FILE__, __LINE__);
 		imprints = b->timprints;
 		if (imprints != NULL && imprints != (Imprints *) 1) {
 			b->timprints = (Imprints *) 1;

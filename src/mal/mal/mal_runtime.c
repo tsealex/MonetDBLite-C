@@ -64,7 +64,7 @@ runtimeProfileInit(Client cntxt, MalBlkPtr mb, MalStkPtr stk)
 	str q;
 	QueryQueue tmp;
 
-	MT_lock_set(&mal_delayLock);
+	MT_lock_set(&mal_delayLock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	tmp = QRYqueue;
 	if ( QRYqueue == 0)
 		QRYqueue = (QueryQueue) GDKzalloc( sizeof (struct QRYQUEUE) * (qsize= 256));
@@ -120,7 +120,7 @@ runtimeProfileFinish(Client cntxt, MalBlkPtr mb, MalStkPtr stk)
 	(void) cntxt;
 	(void) mb;
 
-	MT_lock_set(&mal_delayLock);
+	MT_lock_set(&mal_delayLock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	for( i=j=0; i< qtop; i++)
 	if ( QRYqueue[i].stk != stk)
 		QRYqueue[j++] = QRYqueue[i];
@@ -161,7 +161,7 @@ finishSessionProfiler(Client cntxt)
 
 	(void) cntxt;
 
-	MT_lock_set(&mal_delayLock);
+	MT_lock_set(&mal_delayLock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	for( i=j=0; i< qtop; i++)
 	if ( QRYqueue[i].cntxt != cntxt)
 		QRYqueue[j++] = QRYqueue[i];
@@ -226,7 +226,7 @@ runtimeProfileExit(Client cntxt, MalBlkPtr mb, MalStkPtr stk, InstrPtr pci, Runt
 	if (!cntxt->progress_callback) {
 		return;
 	}
-	MT_lock_set(&cntxt->progress_lock);
+	MT_lock_set(&cntxt->progress_lock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	cntxt->progress_done++;
 	if (cntxt->progress_done > cntxt->progress_len) {
 		cntxt->progress_done = cntxt->progress_len;

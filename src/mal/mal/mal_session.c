@@ -265,7 +265,7 @@ MALreader(Client c)
 {
 	if (MCreadClient(c) > 0)
 		return MAL_SUCCEED;
-	MT_lock_set(&mal_contextLock);
+	MT_lock_set(&mal_contextLock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	c->mode = FINISHCLIENT;
 	MT_lock_unset(&mal_contextLock);
 	if (c->fdin)

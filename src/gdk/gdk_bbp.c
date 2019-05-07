@@ -229,14 +229,14 @@ static volatile MT_Id locked_by = 0;
 
 #define BBP_unload_inc(bid, nme)		\
 	do {					\
-		MT_lock_set(&GDKunloadLock);	\
+		MT_lock_set(&GDKunloadLock); printf("Lock %s:%d\n", __FILE__, __LINE__);	\
 		BBPunloadCnt++;			\
 		MT_lock_unset(&GDKunloadLock);	\
 	} while (0)
 
 #define BBP_unload_dec(bid, nme)		\
 	do {					\
-		MT_lock_set(&GDKunloadLock);	\
+		MT_lock_set(&GDKunloadLock); printf("Lock %s:%d\n", __FILE__, __LINE__);	\
 		--BBPunloadCnt;			\
 		assert(BBPunloadCnt >= 0);	\
 		MT_lock_unset(&GDKunloadLock);	\
@@ -251,19 +251,19 @@ BBPlock(void)
 	int i;
 
 	/* wait for all pending unloads to finish */
-	MT_lock_set(&GDKunloadLock);
+	MT_lock_set(&GDKunloadLock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	while (BBPunloadCnt > 0) {
 		MT_lock_unset(&GDKunloadLock);
 		MT_sleep_ms(1);
-		MT_lock_set(&GDKunloadLock);
+		MT_lock_set(&GDKunloadLock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	}
 
 	for (i = 0; i <= BBP_THREADMASK; i++)
-		MT_lock_set(&GDKtrimLock(i));
+		MT_lock_set(&GDKtrimLock(i)); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	for (i = 0; i <= BBP_THREADMASK; i++)
-		MT_lock_set(&GDKcacheLock(i));
+		MT_lock_set(&GDKcacheLock(i)); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	for (i = 0; i <= BBP_BATMASK; i++)
-		MT_lock_set(&GDKswapLock(i));
+		MT_lock_set(&GDKswapLock(i)); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	locked_by = MT_getpid();
 
 	MT_lock_unset(&GDKunloadLock);
@@ -1780,7 +1780,7 @@ BBP_find(const char *nme, bool lock)
 	} else if (*nme != '.') {
 		/* must lock since hash-lookup traverses other BATs */
 		if (lock)
-			MT_lock_set(&GDKnameLock);
+			MT_lock_set(&GDKnameLock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 		for (i = BBP_hash[strHash(nme) & BBP_mask]; i; i = BBP_next(i)) {
 			if (strcmp(BBP_logical(i), nme) == 0)
 				break;
@@ -1917,8 +1917,8 @@ BBPinsert(BAT *bn)
 
 	/* critical section: get a new BBP entry */
 	if (lock) {
-		MT_lock_set(&GDKtrimLock(idx));
-		MT_lock_set(&GDKcacheLock(idx));
+		MT_lock_set(&GDKtrimLock(idx)); printf("Lock %s:%d\n", __FILE__, __LINE__);
+		MT_lock_set(&GDKcacheLock(idx)); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	}
 
 	/* find an empty slot */
@@ -1931,9 +1931,9 @@ BBPinsert(BAT *bn)
 			 * got */
 			MT_lock_unset(&GDKcacheLock(idx));
 			for (i = 0; i <= BBP_THREADMASK; i++)
-				MT_lock_set(&GDKcacheLock(i));
+				MT_lock_set(&GDKcacheLock(i)); printf("Lock %s:%d\n", __FILE__, __LINE__);
 		}
-		MT_lock_set(&GDKnameLock);
+		MT_lock_set(&GDKnameLock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 		/* check again in case some other thread extended
 		 * while we were waiting */
 		if (BBP_free(idx) <= 0) {
@@ -2022,7 +2022,7 @@ BBPcacheit(BAT *bn, bool lock)
 	assert(bn->batCacheid > 0);
 
 	if (lock)
-		MT_lock_set(&GDKswapLock(i));
+		MT_lock_set(&GDKswapLock(i)); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	mode = (BBP_status(i) | BBPLOADED) & ~(BBPLOADING | BBPDELETING);
 	BBP_status_set(i, mode, "BBPcacheit");
 	BBP_desc(i) = bn;
@@ -2084,10 +2084,10 @@ bbpclear(bat i, int idx, bool lock)
 	BBP_refs(i) = 0;
 	BBP_lrefs(i) = 0;
 	if (lock)
-		MT_lock_set(&GDKcacheLock(idx));
+		MT_lock_set(&GDKcacheLock(idx)); printf("Lock %s:%d\n", __FILE__, __LINE__);
 
 	if (BBPtmpcheck(BBP_logical(i)) == 0) {
-		MT_lock_set(&GDKnameLock);
+		MT_lock_set(&GDKnameLock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 		BBP_delete(i);
 		MT_lock_unset(&GDKnameLock);
 	}
@@ -2160,8 +2160,8 @@ BBPrename(bat bid, const char *nme)
 		return BBPRENAME_LONG;
 	}
 	idx = threadmask(MT_getpid());
-	MT_lock_set(&GDKtrimLock(idx));
-	MT_lock_set(&GDKnameLock);
+	MT_lock_set(&GDKtrimLock(idx)); printf("Lock %s:%d\n", __FILE__, __LINE__);
+	MT_lock_set(&GDKnameLock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	i = BBP_find(nme, false);
 	if (i != 0) {
 		MT_lock_unset(&GDKnameLock);
@@ -2185,7 +2185,7 @@ BBPrename(bat bid, const char *nme)
 		bool lock = locked_by == 0 || locked_by != MT_getpid();
 
 		if (lock)
-			MT_lock_set(&GDKswapLock(i));
+			MT_lock_set(&GDKswapLock(i)); printf("Lock %s:%d\n", __FILE__, __LINE__);
 		BBP_status_on(bid, BBPRENAMED, "BBPrename");
 		if (lock)
 			MT_lock_unset(&GDKswapLock(i));
@@ -2263,7 +2263,7 @@ incref(bat i, bool logical, bool lock)
 
 	if (lock) {
 		for (;;) {
-			MT_lock_set(&GDKswapLock(i));
+			MT_lock_set(&GDKswapLock(i)); printf("Lock %s:%d\n", __FILE__, __LINE__);
 			if (!(BBP_status(i) & (BBPUNSTABLE|BBPLOADING)))
 				break;
 			/* the BATs is "unstable", try again */
@@ -2351,7 +2351,7 @@ BBPshare(bat parent)
 	assert(parent > 0);
 	(void) incref(parent, true, lock);
 	if (lock)
-		MT_lock_set(&GDKswapLock(parent));
+		MT_lock_set(&GDKswapLock(parent)); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	++BBP_cache(parent)->batSharecnt;
 	assert(BBP_refs(parent) > 0);
 	if (lock)
@@ -2369,7 +2369,7 @@ decref(bat i, bool logical, bool releaseShare, bool lock, const char *func)
 
 	assert(i > 0);
 	if (lock)
-		MT_lock_set(&GDKswapLock(i));
+		MT_lock_set(&GDKswapLock(i)); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	if (releaseShare) {
 		--BBP_desc(i)->batSharecnt;
 		if (lock)
@@ -2382,7 +2382,7 @@ decref(bat i, bool logical, bool releaseShare, bool lock, const char *func)
 			MT_lock_unset(&GDKswapLock(i));
 		BBPspin(i, func, BBPUNLOADING);
 		if (lock)
-			MT_lock_set(&GDKswapLock(i));
+			MT_lock_set(&GDKswapLock(i)); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	}
 
 	b = BBP_cache(i);
@@ -2558,13 +2558,13 @@ getBBPdescriptor(bat i, bool lock)
 	if ((b = BBP_cache(i)) == NULL) {
 
 		if (lock)
-			MT_lock_set(&GDKswapLock(i));
+			MT_lock_set(&GDKswapLock(i)); printf("Lock %s:%d\n", __FILE__, __LINE__);
 		while (BBP_status(i) & BBPWAITING) {	/* wait for bat to be loaded by other thread */
 			if (lock)
 				MT_lock_unset(&GDKswapLock(i));
 			MT_sleep_ms(KITTENNAP);
 			if (lock)
-				MT_lock_set(&GDKswapLock(i));
+				MT_lock_set(&GDKswapLock(i)); printf("Lock %s:%d\n", __FILE__, __LINE__);
 		}
 		if (BBPvalid(i)) {
 			b = BBP_cache(i);
@@ -2935,7 +2935,7 @@ BBPprepare(bool subcommit)
 
 	/* tmLock is only used here, helds usually very shortly just
 	 * to protect the file counters */
-	MT_lock_set(&GDKtmLock);
+	MT_lock_set(&GDKtmLock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 
 	start_subcommit = (subcommit && backup_subdir == 0);
 	if (start_subcommit) {

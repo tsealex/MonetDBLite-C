@@ -1097,7 +1097,7 @@ static sqlid
 next_oid(void)
 {
 	int id = 0;
-	MT_lock_set(&bs_lock);
+	MT_lock_set(&bs_lock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	id = store_oid++;
 	MT_lock_unset(&bs_lock);
 	return id;
@@ -1651,7 +1651,7 @@ store_init(int debug, store_type store, int readonly, int singleuser, logger_set
 #ifdef NEED_MT_LOCK_INIT
 	MT_lock_init(&bs_lock, "SQL_bs_lock");
 #endif
-	MT_lock_set(&bs_lock);
+	MT_lock_set(&bs_lock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 
 	/* check if all parameters for a shared log are set */
 	if (store_readonly && log_settings->shared_logdir != NULL && log_settings->shared_drift_threshold >= 0) {
@@ -1697,7 +1697,7 @@ static int logging = 0;
 void
 store_exit(void)
 {
-	MT_lock_set(&bs_lock);
+	MT_lock_set(&bs_lock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 
 #ifdef STORE_DEBUG
 	fprintf(stderr, "#store exit locked\n");
@@ -1707,13 +1707,13 @@ store_exit(void)
 	while (logging) {
 		MT_lock_unset(&bs_lock);
 		MT_sleep_ms(100);
-		MT_lock_set(&bs_lock);
+		MT_lock_set(&bs_lock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	}
 
 	if (gtrans) {
 		MT_lock_unset(&bs_lock);
 		sequences_exit();
-		MT_lock_set(&bs_lock);
+		MT_lock_set(&bs_lock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	}
 	if (spares > 0)
 		destroy_spare_transactions();
@@ -1729,7 +1729,7 @@ store_exit(void)
 	while (transactions > 0) {
 		MT_lock_unset(&bs_lock);
 		MT_sleep_ms(100);
-		MT_lock_set(&bs_lock);
+		MT_lock_set(&bs_lock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	}
 	if (transactions == 0 && gtrans) {
 		sql_trans_destroy(gtrans);
@@ -1848,7 +1848,7 @@ store_manager(void)
 			}
 		}
 
-		MT_lock_set(&bs_lock);
+		MT_lock_set(&bs_lock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 
 
 		if ((!need_flush && logger_funcs.changes() < 1000000 && shared_transactions_drift < shared_drift_threshold)) {
@@ -1862,7 +1862,7 @@ store_manager(void)
 			if (GDKexiting())
 				return;
 			MT_sleep_ms(sleeptime);
-			MT_lock_set(&bs_lock);
+			MT_lock_set(&bs_lock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 		}
 
 		if (create_shared_logger) {
@@ -1885,7 +1885,7 @@ store_manager(void)
 			if (res < 0) {
 				GDKfatal("shared write-ahead log store re-load failure");
 			}
-			MT_lock_set(&bs_lock);
+			MT_lock_set(&bs_lock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 		}
 
 		/* make sure we reset all transactions on re-activation */
@@ -1905,7 +1905,7 @@ store_manager(void)
 			res = logger_funcs.cleanup(keep_persisted_log_files);
 		}
 
-		MT_lock_set(&bs_lock);
+		MT_lock_set(&bs_lock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 		logging = 0;
 		MT_lock_unset(&bs_lock);
 
@@ -1930,7 +1930,7 @@ idle_manager(void)
 			if (GDKexiting())
 				return;
 		}
-		MT_lock_set(&bs_lock);
+		MT_lock_set(&bs_lock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 		if (ATOMIC_GET(store_nr_active, store_nr_active_lock) || GDKexiting() || !store_needs_vacuum(gtrans)) {
 			MT_lock_unset(&bs_lock);
 			continue;
@@ -1951,7 +1951,7 @@ idle_manager(void)
 void
 store_lock(void)
 {
-	MT_lock_set(&bs_lock);
+	MT_lock_set(&bs_lock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 #ifdef STORE_DEBUG
 	fprintf(stderr, "#locked\n");
 #endif

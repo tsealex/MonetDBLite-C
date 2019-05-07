@@ -23,7 +23,7 @@ _list_find_name(list *l, const char *name)
 	node *n;
 
 	if (l) {
-		MT_lock_set(&l->ht_lock);
+		MT_lock_set(&l->ht_lock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 		if ((!l->ht || l->ht->size*16 < list_length(l)) && list_length(l) > HASH_MIN_SIZE && l->sa) {
 			l->ht = hash_new(l->sa, list_length(l), (fkeyvalue)&base_key);
 			if (l->ht == NULL) {

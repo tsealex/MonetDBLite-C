@@ -24,7 +24,7 @@ BATidxsync(void *arg)
 
 	ALGODEBUG t0 = GDKusec();
 
-	MT_lock_set(&GDKhashLock(b->batCacheid));
+	MT_lock_set(&GDKhashLock(b->batCacheid)); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	if ((hp = b->torderidx) != NULL) {
 		if (HEAPsave(hp, hp->filename, NULL) == GDK_SUCCEED) {
 			if (hp->storage == STORE_MEM) {
@@ -74,7 +74,7 @@ BATcheckorderidx(BAT *b)
 		return false;
 	assert(b->batCacheid > 0);
 	ALGODEBUG t = GDKusec();
-	MT_lock_set(&GDKhashLock(b->batCacheid));
+	MT_lock_set(&GDKhashLock(b->batCacheid)); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	if (b->torderidx == (Heap *) 1) {
 		Heap *hp;
 		const char *nme = BBP_physical(b->batCacheid);
@@ -190,7 +190,7 @@ BATorderidx(BAT *b, bool stable)
 		} else {
 			/* BATsort quite possibly already created the
 			 * order index, but just to be sure... */
-			MT_lock_set(&GDKhashLock(b->batCacheid));
+			MT_lock_set(&GDKhashLock(b->batCacheid)); printf("Lock %s:%d\n", __FILE__, __LINE__);
 			if (b->torderidx == NULL) {
 				Heap *m;
 				if ((m = createOIDXheap(b, stable)) == NULL) {
@@ -344,7 +344,7 @@ GDKmergeidx(BAT *b, BAT**a, int n_ar)
 			 ATOMname(b->ttype));
 		return GDK_FAIL;
 	}
-	MT_lock_set(&GDKhashLock(b->batCacheid));
+	MT_lock_set(&GDKhashLock(b->batCacheid)); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	if (b->torderidx) {
 		MT_lock_unset(&GDKhashLock(b->batCacheid));
 		return GDK_SUCCEED;
@@ -481,7 +481,7 @@ OIDXfree(BAT *b)
 	if (b) {
 		Heap *hp;
 
-		MT_lock_set(&GDKhashLock(b->batCacheid));
+		MT_lock_set(&GDKhashLock(b->batCacheid)); printf("Lock %s:%d\n", __FILE__, __LINE__);
 		if ((hp = b->torderidx) != NULL && hp != (Heap *) 1) {
 			b->torderidx = (Heap *) 1;
 			HEAPfree(hp, false);
@@ -497,7 +497,7 @@ OIDXdestroy(BAT *b)
 	if (b) {
 		Heap *hp;
 
-		MT_lock_set(&GDKhashLock(b->batCacheid));
+		MT_lock_set(&GDKhashLock(b->batCacheid)); printf("Lock %s:%d\n", __FILE__, __LINE__);
 		hp = b->torderidx;
 		b->torderidx = NULL;
 		MT_lock_unset(&GDKhashLock(b->batCacheid));

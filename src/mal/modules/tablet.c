@@ -652,7 +652,7 @@ static void
 tablet_error(READERtask *task, lng row, int col, const char *msg, const char *fcn)
 {
 	if (task->cntxt->error_row != NULL) {
-		MT_lock_set(&errorlock);
+		MT_lock_set(&errorlock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 		if (BUNappend(task->cntxt->error_row, &row, false) != GDK_SUCCEED ||
 			BUNappend(task->cntxt->error_fld, &col, false) != GDK_SUCCEED ||
 			BUNappend(task->cntxt->error_msg, msg, false) != GDK_SUCCEED ||
@@ -671,7 +671,7 @@ tablet_error(READERtask *task, lng row, int col, const char *msg, const char *fc
 		task->errorcnt++;
 		MT_lock_unset(&errorlock);
 	} else {
-		MT_lock_set(&errorlock);
+		MT_lock_set(&errorlock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 		if (task->as->error == NULL && (msg == NULL || (task->as->error = GDKstrdup(msg)) == NULL)) {
 			task->as->error = createException(MAL, "sql.copy_from", SQLSTATE(HY001) MAL_MALLOC_FAIL);
 			task->besteffort = 0;
@@ -865,7 +865,7 @@ SQLinsert_val(READERtask *task, int col, int idx)
 				mycpstr(scpy, s);
 				s = scpy;
 			}
-			MT_lock_set(&errorlock);
+			MT_lock_set(&errorlock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 			snprintf(buf, sizeof(buf),
 					 "line " LLFMT " field %s '%s' expected%s%s%s",
 					 row, fmt->name ? fmt->name : "", fmt->type,
@@ -898,7 +898,7 @@ SQLinsert_val(READERtask *task, int col, int idx)
   bunins_failed:
 	if (task->rowerror) {
 		lng row = BATcount(fmt->c);
-		MT_lock_set(&errorlock);
+		MT_lock_set(&errorlock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 		if (BUNappend(task->cntxt->error_row, &row, false) != GDK_SUCCEED ||
 			BUNappend(task->cntxt->error_fld, &col, false) != GDK_SUCCEED ||
 			BUNappend(task->cntxt->error_msg, "insert failed", false) != GDK_SUCCEED ||
@@ -924,7 +924,7 @@ SQLworker_column(READERtask *task, int col)
 		return 0;
 
 	/* watch out for concurrent threads */
-	MT_lock_set(&mal_copyLock);
+	MT_lock_set(&mal_copyLock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	if (!fmt[col].skip && BATcapacity(fmt[col].c) < BATcount(fmt[col].c) + task->next) {
 		if (BATextend(fmt[col].c, BATgrows(fmt[col].c) + task->limit) != GDK_SUCCEED) {
 			tablet_error(task, lng_nil, col, "Failed to extend the BAT, perhaps disk full\n", "SQLworker_column");
@@ -1566,7 +1566,7 @@ SQLproducer(void *p)
 static void
 create_rejects_table(Client cntxt)
 {
-	MT_lock_set(&mal_contextLock);
+	MT_lock_set(&mal_contextLock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	if (cntxt->error_row == NULL) {
 		cntxt->error_row = COLnew(0, TYPE_lng, 0, TRANSIENT);
 		cntxt->error_fld = COLnew(0, TYPE_int, 0, TRANSIENT);
@@ -2087,7 +2087,7 @@ str
 COPYrejects_clear(Client cntxt, MalBlkPtr mb, MalStkPtr stk, InstrPtr pci)
 {
 	if (cntxt->error_row) {
-		MT_lock_set(&errorlock);
+		MT_lock_set(&errorlock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 		BATclear(cntxt->error_row, true);
 		if(cntxt->error_fld) BATclear(cntxt->error_fld, true);
 		if(cntxt->error_msg) BATclear(cntxt->error_msg, true);

@@ -153,7 +153,7 @@ getFreeScenario(void)
 	int i;
 	Scenario scen = NULL;
 
-	MT_lock_set(&scenarioLock);
+	MT_lock_set(&scenarioLock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	for (i = 0; i < MAXSCEN && scenarioRec[i].name; i++)
 		;
 	if (i < MAXSCEN) 
@@ -181,7 +181,7 @@ initScenario(Client c, Scenario s)
 	if (s->initSystemCmd)
 		return(fillScenario(c, s));
 	/* prepare for conclicts */
-	MT_lock_set(&mal_contextLock);
+	MT_lock_set(&mal_contextLock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	if (s->initSystem && s->initSystemCmd == 0) {
 		s->initSystemCmd = (MALfcn) getAddress(s->initSystem);
 		if (s->initSystemCmd) {

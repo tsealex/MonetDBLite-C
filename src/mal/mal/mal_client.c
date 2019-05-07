@@ -136,7 +136,7 @@ MCnewClient(void)
 	if (!mal_clients) {
 		return NULL;
 	}
-	MT_lock_set(&mal_contextLock);
+	MT_lock_set(&mal_contextLock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	if (mal_clients[CONSOLE].user && mal_clients[CONSOLE].mode == FINISHCLIENT) {
 		/*system shutdown in progress */
 		MT_lock_unset(&mal_contextLock);
@@ -467,7 +467,7 @@ MCstopClients(Client cntxt)
 	if (!mal_clients) {
 		return;
 	}
-	MT_lock_set(&mal_contextLock);
+	MT_lock_set(&mal_contextLock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	for (c = mal_clients + 1; c < mal_clients + MAL_MAXCLIENTS; c++) {
 		if (c && cntxt != c) {
 			if (c->mode == RUNCLIENT){
@@ -625,7 +625,7 @@ MCvalid(Client tc)
 	if (tc == NULL) {
 		return 0;
 	}
-	MT_lock_set(&mal_contextLock);
+	MT_lock_set(&mal_contextLock); printf("Lock %s:%d\n", __FILE__, __LINE__);
 	for (c = mal_clients; c < mal_clients + MAL_MAXCLIENTS; c++) {
 		if (c == tc && c->mode == RUNCLIENT) {
 			MT_lock_unset(&mal_contextLock);
