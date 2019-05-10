@@ -104,10 +104,6 @@ char* monetdb_startup(char* dbdir, char silent, char sequential) {
 	MT_lock_set(&embedded_lock);
 	GDKfataljumpenable = 1;
 
-    ffwd_init();
-    launch_servers(1);
-    ffwd_bind_main_thread();
-
 	if(setjmp(GDKfataljump) != 0) {
 		retval = GDKfatalmsg;
 		// we will get here if GDKfatal was called.
